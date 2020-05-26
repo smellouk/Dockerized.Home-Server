@@ -1,0 +1,85 @@
+version: '2.4'
+
+networks:
+  media-net:
+    external: true
+    
+services:
+    #####################################
+    ############## jackett ##############
+    #####################################
+    jackett:
+        image: linuxserver/jackett
+        container_name: jackett
+        hostname: jackett
+        restart: unless-stopped
+        volumes:
+            - ../media:/config
+        ports:
+            - "${JACKETT_PORT}:9117"
+        networks:
+            media-net:
+                ipv4_address: 172.20.0.3
+        environment:
+            PUID: 1000
+            PGID: 1000
+            TZ: Eruope/Berlin
+        labels:
+            - "traefik.enable=true"
+            - "traefik.http.routers.jackett.rule=Host(`jackett.${DOMAIN}`)"
+            - "traefik.http.routers.jackett.entrypoints=web"
+            - "traefik.http.services.jackett.loadbalancer.server.port=9117"
+    
+    #####################################
+    ############## sonarr ###############
+    #####################################
+    sonarr:
+        image: linuxserver/sonarr
+        container_name: sonarr
+        hostname: sonarr
+        restart: unless-stopped
+        volumes:
+            - ../media/sonarr:/config
+            - "${DOWNLOAD_PATH}:/downloads"
+            - "${TV_PATH}:/tv"
+        ports:
+            - "${SONARR_PORT}:8989"
+        networks:
+            media-net:
+                ipv4_address: 172.20.0.4
+        environment:
+            PUID: 1000
+            PGID: 1000
+            TZ: Eruope/Berlin
+        labels:
+            - "traefik.enable=true"
+            - "traefik.http.routers.sonarr.rule=Host(`sonarr.${DOMAIN}`)"
+            - "traefik.http.routers.sonarr.entrypoints=web"
+            - "traefik.http.services.sonarr.loadbalancer.server.port=8989"
+    
+    #####################################
+    ############## radarr ###############
+    #####################################
+    radarr:
+        image: linuxserver/radarr
+        container_name: radarr
+        hostname: radarr
+        restart: unless-stopped
+        volumes:
+            - ../media/radarr:/config
+            - "${DOWNLOAD_PATH}:/downloads"
+            - "${MOVIE_PATH}:/movies"
+        ports:
+            - "${RADARR_PORT}:7878"
+        networks:
+            media-net:
+                ipv4_address: 172.20.0.5
+        environment:
+            PUID: 1000
+            PGID: 1000
+            TZ: Eruope/Berlin
+        labels:
+            - "traefik.enable=true"
+            - "traefik.http.routers.radarr.rule=Host(`radarr.${DOMAIN}`)"
+            - "traefik.http.routers.radarr.entrypoints=web"
+            - "traefik.http.services.radarr.loadbalancer.server.port=7878"

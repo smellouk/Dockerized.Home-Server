@@ -1,0 +1,169 @@
+version: '2.1'
+
+networks:
+    monitor-net:
+        external: true
+
+volumes:
+    prometheus_data:
+        name: prometheus_data
+    grafana_data:
+        name: grafana_data
+        
+services:
+    ##########################################
+    ############## prometheus ################
+    ##########################################
+    prometheus:
+        image: prom/prometheus
+        container_name: prometheus
+        hostname: prometheus
+        restart: unless-stopped
+        volumes:
+            - ../monitoring/prometheus:/etc/prometheus
+            - prometheus_data:/prometheus
+        command:
+            - '--config.file=/etc/prometheus/prometheus.yml'
+            - '--storage.tsdb.path=/prometheus'
+            - '--web.console.libraries=/etc/prometheus/console_libraries'
+            - '--web.console.templates=/etc/prometheus/consoles'
+            - '--storage.tsdb.retention.time=200h'
+            - '--web.enable-lifecycle'
+        ports:
+            - "${PROMETHEUS_PORT}:9090"
+        networks:
+            monitor-net:
+                ipv4_address: 172.30.0.3
+        labels:
+            - "traefik.enable=true"
+            - "traefik.http.routers.prometheus.rule=Host(`prometheus.${DOMAIN}`)"
+            - "traefik.http.routers.prometheus.entrypoints=web"
+            - "traefik.http.services.prometheus.loadbalancer.server.port=9090"
+            - "traefik.http.routers.prometheus.middlewares=prometheus-auth"
+            - "traefik.http.middlewares.prometheus-auth.basicauth.users=${BASIC_AUTH_USER}"
+            - "org.label-schema.group=monitoring"
+
+    ##########################################
+    ############## alertmanager ##############
+    ##########################################
+    alertmanager:
+        image: prom/alertmanager
+        container_name: alertmanager
+        hostname: alertmanager
+        restart: unless-stopped
+        volumes:
+            - ../monitoring/alertmanager:/etc/alertmanager
+            - ../monitoring/alertmanager:/alertmanager
+        command:
+            - '--config.file=/etc/alertmanager/config.yml'
+            - '--storage.path=/alertmanager'
+        ports:
+            - "${ALERT_MANAGER_PORT}:9093"
+        networks:
+            monitor-net:
+                ipv4_address: 172.30.0.4
+        labels:
+            - "traefik.enable=true"
+            - "traefik.http.routers.alertmanager.rule=Host(`alertmanager.${DOMAIN}`)"
+            - "traefik.http.routers.alertmanager.entrypoints=web"
+            - "traefik.http.services.alertmanager.loadbalancer.server.port=9093"
+            - "traefik.http.routers.alertmanager.middlewares=alertmanager-auth"
+            - "traefik.http.middlewares.alertmanager-auth.basicauth.users=${BASIC_AUTH_USER}"
+            - "org.label-schema.group=monitoring"
+
+    ##########################################
+    ############## nodeexporter ##############
+    ##########################################
+    nodeexporter:
+        image: prom/node-exporter
+        container_name: nodeexporter
+        hostname: nodeexporter
+        restart: unless-stopped
+        volumes:
+            - /proc:/host/proc:ro
+            - /sys:/host/sys:ro
+            - /:/rootfs:ro
+        command:
+            - '--path.procfs=/host/proc'
+            - '--path.rootfs=/rootfs'
+            - '--path.sysfs=/host/sys'
+            - '--collector.filesystem.ignored-mount-points=^/(sys|proc|dev|host|etc)($$|/)'
+        expose:
+          - 9100
+        networks:
+            monitor-net:
+                ipv4_address: 172.30.0.5
+        labels:
+            org.label-schema.group: "monitoring"
+
+    ######################################
+    ############## cadvisor ##############
+    ######################################
+    cadvisor:
+        image: gcr.io/google-containers/cadvisor
+        container_name: cadvisor
+        hostname: cadvisor
+        restart: unless-stopped
+        volumes:
+            - /:/rootfs:ro
+            - /var/run:/var/run:rw
+            - /sys:/sys:ro
+            - /var/lib/docker:/var/lib/docker:ro
+            #- /cgroup:/cgroup:ro #doesn't work on MacOS only for Linux
+        expose:
+          - 8080
+        networks:
+            monitor-net:
+                ipv4_address: 172.30.0.6
+        labels:
+            org.label-schema.group: "monitoring"
+
+    #########################################
+    ############## pushgateway ##############
+    #########################################
+    pushgateway:
+        image: prom/pushgateway
+        container_name: pushgateway
+        hostname: pushgateway
+        restart: unless-stopped
+        ports:
+            - "${PUSHGATEWAY_PORT}:9091"
+        networks:
+            monitor-net:
+                ipv4_address: 172.30.0.7
+        labels:
+            - "traefik.enable=true"
+            - "traefik.http.routers.pushgateway.rule=Host(`pushgateway.${DOMAIN}`)"
+            - "traefik.http.routers.pushgateway.entrypoints=web"
+            - "traefik.http.services.pushgateway.loadbalancer.server.port=9091"
+            - "traefik.http.routers.pushgateway.middlewares=pushgateway-auth"
+            - "traefik.http.middlewares.pushgateway-auth.basicauth.users=${BASIC_AUTH_USER}"
+            - "org.label-schema.group=monitoring"
+
+    #####################################
+    ############## Grafana ##############
+    #####################################
+    grafana:
+        image: grafana/grafana
+        container_name: grafana
+        hostname: grafana
+        restart: unless-stopped
+        volumes:
+            - grafana_data:/var/lib/grafana
+            - ../monitoring/grafana/provisioning:/etc/grafana/provisioning
+        environment:
+            - GF_SECURITY_ADMIN_USER=${ADMIN_USER:-admin}
+            - GF_SECURITY_ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin}
+            - GF_USERS_ALLOW_SIGN_UP=false
+            - GF_SECURITY_ALLOW_EMBEDDING=true
+        ports:
+            - "${GRAFANA_PORT}:3000"
+        networks:
+            monitor-net:
+                ipv4_address: 172.30.0.8
+        labels:
+            - "traefik.enable=true"
+            - "traefik.http.routers.grafana.rule=Host(`grafana.${DOMAIN}`)"
+            - "traefik.http.routers.grafana.entrypoints=web"
+            - "traefik.http.services.grafana.loadbalancer.server.port=3000"
+            - "org.label-schema.group=monitoring"

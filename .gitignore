@@ -1,0 +1,5 @@
+/container
+/media
+/network
+docker-compose-env.ps1
+docker-compose-env.sh

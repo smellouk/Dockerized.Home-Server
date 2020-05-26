@@ -1,0 +1,28 @@
+version: '2.4'
+
+networks:
+    container-manager-net:
+        external: true
+
+services:
+    #####################################
+    ############## portainer ##############
+    #####################################
+    portainer:
+        image: portainer/portainer
+        container_name: portainer
+        hostname: portainer
+        volumes:
+            - /var/run/docker.sock:/var/run/docker.sock
+            - ../container/portainer:/data
+        restart: always
+        ports:
+            - "${PORTAINER_PORT}:9000"
+        networks:
+            container-manager-net:
+                ipv4_address: 172.10.0.3
+        labels:
+            - "traefik.enable=true"
+            - "traefik.http.routers.portainer.rule=Host(`portainer.${DOMAIN}`)"
+            - "traefik.http.routers.portainer.entrypoints=web"
+            - "traefik.http.services.portainer.loadbalancer.server.port=9000"

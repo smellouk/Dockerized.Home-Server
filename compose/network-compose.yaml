@@ -1,0 +1,145 @@
+version: '2.1'
+
+networks:
+    #########################################
+    ############## Home bridge ##############
+    #########################################
+    home-net:
+        name: home-net
+        driver: bridge
+        ipam:
+            driver: default
+            config:
+                - subnet: 172.0.0.0/16
+                  gateway: 172.0.0.1
+    
+    ######################################################
+    ############## Container manager bridge ##############
+    ######################################################
+    container-manager-net:
+        name: container-manager-net
+        driver: bridge
+        ipam:
+            driver: default
+            config:
+                - subnet: 172.10.0.0/16
+                  gateway: 172.10.0.1
+    ##########################################
+    ############## Media bridge ##############
+    ##########################################
+    media-net:
+        name: media-net
+        driver: bridge
+        ipam:
+            driver: default
+            config:
+                - subnet: 172.20.0.0/16
+                  gateway: 172.20.0.1
+    
+    ###############################################
+    ############## Monitoring bridge ##############
+    ###############################################
+    monitor-net:
+        name: monitor-net
+        driver: bridge
+        ipam:
+            driver: default
+            config:
+                - subnet: 172.30.0.0/16
+                  gateway: 172.30.0.1
+services:
+    #####################################
+    ############## traefik ##############
+    #####################################
+    traefik:
+        image: traefik:v2.2
+        container_name: traefik
+        hostname: traefik
+        restart: unless-stopped
+        command:
+            - "--log.level=DEBUG"
+            - "--api.insecure=true"
+            - "--providers.docker=true"
+            - "--providers.docker.exposedbydefault=false"
+            - "--entrypoints.web.address=:80"
+        ports:
+            - "80:80"
+            - "443:443"
+            - "${TRAEFIK_PORT}:8080"
+        volumes:
+            - "/var/run/docker.sock:/var/run/docker.sock:ro"
+        networks:
+            home-net:
+                ipv4_address: 172.0.0.2
+            container-manager-net:
+                ipv4_address: 172.10.0.2
+            media-net:
+                ipv4_address: 172.20.0.2
+            monitor-net:
+                ipv4_address: 172.30.0.2
+        dns:
+            - ${DNS1}
+            - ${DNS2}
+        labels:
+            - "traefik.enable=true"
+            - "traefik.http.routers.traefik.rule=Host(`traefik.${DOMAIN}`)"
+            - "traefik.http.services.traefik.loadbalancer.server.port=8080"
+            - "traefik.http.services.traefik.loadbalancer.server.scheme=http"
+            - "traefik.http.routers.traefik.middlewares=traefik-auth"
+            - "traefik.http.middlewares.traefik-auth.basicauth.users=${BASIC_AUTH_USER}"
+    
+    #########################################
+    ############## adguardhome ##############
+    #########################################
+    adguardhome:
+        image: adguard/adguardhome
+        container_name: adguardhome
+        hostname: traefik
+        restart: unless-stopped
+        volumes:
+            - ../network/adguard/work:/opt/adguardhome/work
+            - ../network/adguard/conf:/opt/adguardhome/conf
+        ports:
+            - "53:53/tcp"
+            - "53:53/udp"
+            - "67:67/udp"
+            - "68:68/tcp"
+            - "68:68/udp"
+            - "4430:443/tcp"
+            - "853:853/tcp"
+            - "3001:3000/tcp"
+            - "${ADGUARD_PORT}:8081/tcp"
+        networks:
+            home-net:
+                ipv4_address: 172.0.0.3
+        labels:
+            - "traefik.enable=true"
+            - "traefik.http.routers.adguard.rule=Host(`adguard.${DOMAIN}`)"
+            - "traefik.http.routers.adguard.entrypoints=web"
+            - "traefik.http.services.adguard.loadbalancer.server.port=8081"
+    
+    ######################################
+    ############## organizr ##############
+    ######################################
+    organizr:
+        image: organizrtools/organizr-v2
+        container_name: organizr
+        hostname: organizr
+        restart: unless-stopped
+        ports:
+            - "${ORGANIZR_PORT}:80"
+        expose:
+            - 80
+        volumes:
+            - ../network/organizr:/config
+        environment:
+            PUID: 1000
+            PGID: 1000
+        networks:
+            home-net:
+                ipv4_address: 172.0.0.4
+        labels:
+            - "traefik.enable=true"
+            - "traefik.http.routers.organizr.rule=Host(`${DOMAIN}`)"
+            - "traefik.http.services.organizr.loadbalancer.server.port=80"
+            - "traefik.http.services.organizr.loadbalancer.server.scheme=http"
