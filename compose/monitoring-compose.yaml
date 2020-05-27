@@ -9,7 +9,9 @@ volumes:
         name: prometheus_data
     grafana_data:
         name: grafana_data
-        
+    alertmanager_data:
+        name: alertmanager_data
+
 services:
     ##########################################
     ############## prometheus ################
@@ -53,7 +55,7 @@ services:
         restart: unless-stopped
         volumes:
             - ../monitoring/alertmanager:/etc/alertmanager
-            - ../monitoring/alertmanager:/alertmanager
+            - alertmanager_data:/alertmanager
         command:
             - '--config.file=/etc/alertmanager/config.yml'
             - '--storage.path=/alertmanager'

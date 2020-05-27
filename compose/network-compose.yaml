@@ -12,7 +12,7 @@ networks:
             config:
                 - subnet: 172.0.0.0/16
                   gateway: 172.0.0.1
-    
+
     ######################################################
     ############## Container manager bridge ##############
     ######################################################
@@ -35,7 +35,7 @@ networks:
             config:
                 - subnet: 172.20.0.0/16
                   gateway: 172.20.0.1
-    
+
     ###############################################
     ############## Monitoring bridge ##############
     ###############################################
@@ -87,14 +87,14 @@ services:
             - "traefik.http.services.traefik.loadbalancer.server.scheme=http"
             - "traefik.http.routers.traefik.middlewares=traefik-auth"
             - "traefik.http.middlewares.traefik-auth.basicauth.users=${BASIC_AUTH_USER}"
-    
+
     #########################################
     ############## adguardhome ##############
     #########################################
     adguardhome:
         image: adguard/adguardhome
         container_name: adguardhome
-        hostname: traefik
+        hostname: adguard
         restart: unless-stopped
         volumes:
             - ../network/adguard/work:/opt/adguardhome/work
@@ -117,7 +117,7 @@ services:
             - "traefik.http.routers.adguard.rule=Host(`adguard.${DOMAIN}`)"
             - "traefik.http.routers.adguard.entrypoints=web"
             - "traefik.http.services.adguard.loadbalancer.server.port=8081"
-    
+
     ######################################
     ############## organizr ##############
     ######################################

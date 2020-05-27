@@ -5,8 +5,8 @@ export BASIC_AUTH_USER="YOUR_BASIC_AUTH_USER"
 export TRAEFIK_PORT="8090"
 export ADGUARD_PORT="8081"
 export ORGANIZR_PORT="8082"
-export DNS1 = "YOUR_DNS1"
-export DNS2 = "YOUR_DNS2"
+export DNS1="YOUR_DNS1"
+export DNS2="YOUR_DNS2"
 # Container manager
 export PORTAINER_PORT="9000"
 # Media
