@@ -46,7 +46,6 @@ networks:
             config:
                 - subnet: 172.30.0.0/16
                   gateway: 172.30.0.1
-                  
 services:
     #####################################
     ############## traefik ##############
@@ -62,19 +61,12 @@ services:
             - "--providers.docker=true"
             - "--providers.docker.exposedbydefault=false"
             - "--entrypoints.web.address=:80"
-        environment:
-            - DOMAIN
-            - UTORRENT_URL
-            - ROUTER_URL
         ports:
             - "80:80"
             - "443:443"
             - "${TRAEFIK_PORT}:8080"
         volumes:
-            - /var/run/docker.sock:/var/run/docker.sock:ro
-            - ../data/network/traefik/certs:/certs:ro
-            - ../data/network/traefik/traefik.yml:/traefik.yml:ro
-            - ../data/network/traefik/config:/config:ro
+            - "/var/run/docker.sock:/var/run/docker.sock:ro"
         networks:
             home-net:
                 ipv4_address: 172.0.0.2
@@ -89,48 +81,12 @@ services:
             - ${DNS2}
         labels:
             - "traefik.enable=true"
-            - "traefik.http.routers.traefik.entrypoints=http,https"
             - "traefik.http.routers.traefik.rule=Host(`traefik.${DOMAIN}`)"
-            - "traefik.http.routers.traefik.tls=true"
-            - "traefik.http.routers.traefik.service=api@internal"
-            - "traefik.http.routers.traefik.middlewares=traefik-auth"
             - "traefik.http.services.traefik.loadbalancer.server.port=8080"
+            - "traefik.http.services.traefik.loadbalancer.server.scheme=http"
+            - "traefik.http.routers.traefik.middlewares=traefik-auth"
             - "traefik.http.middlewares.traefik-auth.basicauth.users=${BASIC_AUTH_USER}"
 
-    ######################################
-    ############## heimdall ##############
-    ######################################
-    heimdall:
-        image: linuxserver/heimdall
-        container_name: heimdall
-        hostname: heimdall
-        restart: unless-stopped
-        ports:
-            - "${HEIMDALL_PORT}:80"
-        expose:
-            - 80
-        volumes:
-            - ../data/network/heimdall:/config
-        environment:
-            PUID: 1000
-            PGID: 1000
-        networks:
-            home-net:
-                ipv4_address: 172.0.0.3
-            container-manager-net:
-                ipv4_address: 172.10.0.3
-            media-net:
-                ipv4_address: 172.20.0.3
-            monitor-net:
-                ipv4_address: 172.30.0.3
-        labels:
-            - "traefik.enable=true"
-            - "traefik.http.routers.heimdall.entrypoints=http,https"
-            - "traefik.http.routers.heimdall.rule=Host(`${DOMAIN}`)"
-            - "traefik.http.routers.heimdall.tls=true"
-            - "traefik.http.routers.heimdall.service=heimdall"
-            - "traefik.http.services.heimdall.loadbalancer.server.port=80"
-            
     #########################################
     ############## adguardhome ##############
     #########################################
@@ -154,34 +110,36 @@ services:
             - "${ADGUARD_PORT}:8080/tcp"
         networks:
             home-net:
+                ipv4_address: 172.0.0.3
+        labels:
+            - "traefik.enable=true"
+            - "traefik.http.routers.adguard.rule=Host(`adguard.${DOMAIN}`)"
+            - "traefik.http.routers.adguard.entrypoints=web"
+            - "traefik.http.services.adguard.loadbalancer.server.port=8080"
+
+    ######################################
+    ############## heimdall ##############
+    ######################################
+    heimdall:
+        image: linuxserver/heimdall
+        container_name: heimdall
+        hostname: heimdall
+        restart: unless-stopped
+        ports:
+            - "${HEIMDALL_PORT}:80"
+        expose:
+            - 80
+        volumes:
+            - ../data/network/heimdall:/config
+        environment:
+            PUID: 1000
+            PGID: 1000
+            APP_NAME: "Feny Home"
+        networks:
+            home-net:
                 ipv4_address: 172.0.0.4
         labels:
             - "traefik.enable=true"
-            - "traefik.http.routers.adguard.entrypoints=http,https"
-            - "traefik.http.routers.adguard.rule=Host(`adguard.${DOMAIN}`)"
-            - "traefik.http.routers.adguard.tls=true"
-            - "traefik.http.routers.adguard.service=adguard"
-            - "traefik.http.services.adguard.loadbalancer.server.port=8080"
-    
-    #############################################
-    ############## Static nautilus ##############
-    #############################################
-    nautilus:
-        image: halverneus/static-file-server
-        container_name: nautilus
-        hostname: nautilus
-        restart: unless-stopped
-        volumes:
-            - ../data/network/nautilus:/web
-        ports:
-            - "${NAUTILUS_PORT}:8080"
-        networks:
-            home-net:
-                ipv4_address: 172.0.0.5
-        labels:
-            - "traefik.enable=true"
-            - "traefik.http.routers.nautilus.entrypoints=http,https"
-            - "traefik.http.routers.nautilus.rule=Host(`nautilus.${DOMAIN}`)"
-            - "traefik.http.routers.nautilus.tls=true"
-            - "traefik.http.routers.nautilus.service=nautilus"
-            - "traefik.http.services.nautilus.loadbalancer.server.port=8080"
+            - "traefik.http.routers.heimdall.rule=Host(`${DOMAIN}`)"
+            - "traefik.http.services.heimdall.loadbalancer.server.port=80"
+            - "traefik.http.services.heimdall.loadbalancer.server.scheme=http"

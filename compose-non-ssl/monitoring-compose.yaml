@@ -35,16 +35,14 @@ services:
             - "${PROMETHEUS_PORT}:9090"
         networks:
             monitor-net:
-                ipv4_address: 172.30.0.4
+                ipv4_address: 172.30.0.3
         labels:
-            - "traefik.enable=true"            
-            - "traefik.http.routers.prometheus.entrypoints=http,https"
+            - "traefik.enable=true"
             - "traefik.http.routers.prometheus.rule=Host(`prometheus.${DOMAIN}`)"
-            - "traefik.http.routers.prometheus.tls=true"
-            - "traefik.http.routers.prometheus.service=prometheus"
+            - "traefik.http.routers.prometheus.entrypoints=web"
+            - "traefik.http.services.prometheus.loadbalancer.server.port=9090"
             - "traefik.http.routers.prometheus.middlewares=prometheus-auth"
             - "traefik.http.middlewares.prometheus-auth.basicauth.users=${BASIC_AUTH_USER}"
-            - "traefik.http.services.prometheus.loadbalancer.server.port=9090"
             - "org.label-schema.group=monitoring"
 
     ##########################################
@@ -65,16 +63,14 @@ services:
             - "${ALERT_MANAGER_PORT}:9093"
         networks:
             monitor-net:
-                ipv4_address: 172.30.0.5
+                ipv4_address: 172.30.0.4
         labels:
-            - "traefik.enable=true"            
-            - "traefik.http.routers.alertmanager.entrypoints=http,https"
+            - "traefik.enable=true"
             - "traefik.http.routers.alertmanager.rule=Host(`alertmanager.${DOMAIN}`)"
-            - "traefik.http.routers.alertmanager.tls=true"
-            - "traefik.http.routers.alertmanager.service=alertmanager"
+            - "traefik.http.routers.alertmanager.entrypoints=web"
+            - "traefik.http.services.alertmanager.loadbalancer.server.port=9093"
             - "traefik.http.routers.alertmanager.middlewares=alertmanager-auth"
             - "traefik.http.middlewares.alertmanager-auth.basicauth.users=${BASIC_AUTH_USER}"
-            - "traefik.http.services.alertmanager.loadbalancer.server.port=9093"
             - "org.label-schema.group=monitoring"
 
     ##########################################
@@ -98,7 +94,7 @@ services:
           - 9100
         networks:
             monitor-net:
-                ipv4_address: 172.30.0.6
+                ipv4_address: 172.30.0.5
         labels:
             org.label-schema.group: "monitoring"
 
@@ -120,7 +116,7 @@ services:
           - 8080
         networks:
             monitor-net:
-                ipv4_address: 172.30.0.7
+                ipv4_address: 172.30.0.6
         labels:
             org.label-schema.group: "monitoring"
 
@@ -136,16 +132,14 @@ services:
             - "${PUSHGATEWAY_PORT}:9091"
         networks:
             monitor-net:
-                ipv4_address: 172.30.0.8
+                ipv4_address: 172.30.0.7
         labels:
-            - "traefik.enable=true"            
-            - "traefik.http.routers.pushgateway.entrypoints=http,https"
+            - "traefik.enable=true"
             - "traefik.http.routers.pushgateway.rule=Host(`pushgateway.${DOMAIN}`)"
-            - "traefik.http.routers.pushgateway.tls=true"
-            - "traefik.http.routers.pushgateway.service=pushgateway"
+            - "traefik.http.routers.pushgateway.entrypoints=web"
+            - "traefik.http.services.pushgateway.loadbalancer.server.port=9091"
             - "traefik.http.routers.pushgateway.middlewares=pushgateway-auth"
             - "traefik.http.middlewares.pushgateway-auth.basicauth.users=${BASIC_AUTH_USER}"
-            - "traefik.http.services.pushgateway.loadbalancer.server.port=9091"
             - "org.label-schema.group=monitoring"
 
     #####################################
@@ -168,12 +162,10 @@ services:
             - "${GRAFANA_PORT}:3000"
         networks:
             monitor-net:
-                ipv4_address: 172.30.0.9
-        labels:            
+                ipv4_address: 172.30.0.8
+        labels:
             - "traefik.enable=true"
-            - "traefik.http.routers.grafana.entrypoints=http,https"
             - "traefik.http.routers.grafana.rule=Host(`grafana.${DOMAIN}`)"
-            - "traefik.http.routers.grafana.tls=true"
-            - "traefik.http.routers.grafana.service=grafana"
+            - "traefik.http.routers.grafana.entrypoints=web"
             - "traefik.http.services.grafana.loadbalancer.server.port=3000"
             - "org.label-schema.group=monitoring"

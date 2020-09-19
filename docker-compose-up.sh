@@ -42,21 +42,22 @@ echo ""
 echo ""
 printf "${BLUE}--------- Docker compose${NC}"
 echo ""
+printf "${YELLOW}Network Stack${NC}"
+echo ""
+docker-compose -p "network" -f "$base_compose_path/network-compose.yaml" --env-file "$env" up -d
+
+echo ""
 printf "${YELLOW}Container Manager Stack${NC}"
 echo ""
-docker-compose -p "container-manager" -f ./compose/container-manager-compose.yaml --env-file "$env" down
+docker-compose -p "container-manager" -f "$base_compose_path/container-manager-compose.yaml" --env-file "$env" up -d
 
 echo ""
 printf "${YELLOW}Media Stack${NC}"
 echo ""
-docker-compose -p "media" -f ./compose/media-compose.yaml --env-file "$env" down
+docker-compose -p "media" -f "$base_compose_path/media-compose.yaml" --env-file "$env" up -d
 
 echo ""
 printf "${YELLOW}Monitoring Stack${NC}"
 echo ""
-docker-compose -p "monitoring" -f ./compose/monitoring-compose.yaml --env-file "$env" down
+docker-compose -p "monitoring" -f "$base_compose_path/monitoring-compose.yaml" --env-file "$env" up -d
 
-echo ""
-printf "${YELLOW}Network Stack${NC}"
-echo ""
-docker-compose -p "network" -f ./compose/network-compose.yaml --env-file "$env" down

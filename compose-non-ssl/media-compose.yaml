@@ -14,22 +14,20 @@ services:
         hostname: jackett
         restart: unless-stopped
         volumes:
-            - ../data/media/jackett:/config/Jackett
+            - ../data/media:/config
         ports:
             - "${JACKETT_PORT}:9117"
         networks:
             media-net:
-                ipv4_address: 172.20.0.4
+                ipv4_address: 172.20.0.3
         environment:
             PUID: 1000
             PGID: 1000
             TZ: Eruope/Berlin
         labels:
             - "traefik.enable=true"
-            - "traefik.http.routers.jackett.entrypoints=http,https"
             - "traefik.http.routers.jackett.rule=Host(`jackett.${DOMAIN}`)"
-            - "traefik.http.routers.jackett.tls=true"
-            - "traefik.http.routers.jackett.service=jackett"
+            - "traefik.http.routers.jackett.entrypoints=web"
             - "traefik.http.services.jackett.loadbalancer.server.port=9117"
     
     #####################################
@@ -48,17 +46,15 @@ services:
             - "${SONARR_PORT}:8989"
         networks:
             media-net:
-                ipv4_address: 172.20.0.5
+                ipv4_address: 172.20.0.4
         environment:
             PUID: 1000
             PGID: 1000
             TZ: Eruope/Berlin
         labels:
             - "traefik.enable=true"
-            - "traefik.http.routers.sonarr.entrypoints=http,https"
             - "traefik.http.routers.sonarr.rule=Host(`sonarr.${DOMAIN}`)"
-            - "traefik.http.routers.sonarr.tls=true"
-            - "traefik.http.routers.sonarr.service=sonarr"
+            - "traefik.http.routers.sonarr.entrypoints=web"
             - "traefik.http.services.sonarr.loadbalancer.server.port=8989"
     
     #####################################
@@ -77,17 +73,15 @@ services:
             - "${RADARR_PORT}:7878"
         networks:
             media-net:
-                ipv4_address: 172.20.0.6
+                ipv4_address: 172.20.0.5
         environment:
             PUID: 1000
             PGID: 1000
             TZ: Eruope/Berlin
         labels:
             - "traefik.enable=true"
-            - "traefik.http.routers.radarr.entrypoints=http,https"
             - "traefik.http.routers.radarr.rule=Host(`radarr.${DOMAIN}`)"
-            - "traefik.http.routers.radarr.tls=true"
-            - "traefik.http.routers.radarr.service=radarr"
+            - "traefik.http.routers.radarr.entrypoints=web"
             - "traefik.http.services.radarr.loadbalancer.server.port=7878"
     #####################################
     ############## bazarr ###############
@@ -105,15 +99,13 @@ services:
             - "${BAZARR_PORT}:6767"
         networks:
             media-net:
-                ipv4_address: 172.20.0.7
+                ipv4_address: 172.20.0.6
         environment:
             PUID: 1000
             PGID: 1000
             TZ: Eruope/Berlin
         labels:
             - "traefik.enable=true"
-            - "traefik.http.routers.bazarr.entrypoints=http,https"
             - "traefik.http.routers.bazarr.rule=Host(`bazarr.${DOMAIN}`)"
-            - "traefik.http.routers.bazarr.tls=true"
-            - "traefik.http.routers.bazarr.service=bazarr"
+            - "traefik.http.routers.bazarr.entrypoints=web"
             - "traefik.http.services.bazarr.loadbalancer.server.port=6767"

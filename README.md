@@ -7,14 +7,19 @@ Is a set of docker compose to create home server which provides:
 - Container manager
 - Media manager solution
 - Resources Monitoring solution
+- HTTPS/SSL
 
-![Organizr pointing on Portainer](screenshot.png)
+![Heimdall pointing on Portainer](screenshot.png)
 
 ## Goto
 - [Requirements](#requirements)
 - [Optionals](#optionals)
 - [Used Containers](#used-Containers)
-- [Deploy](#deploy)
+- [SSL/HTTPS](#sslhttps)
+    - [Setup your resolver ](#setup-your-resolver)
+    - [Setup a local Root CA](#setup-a-local-root-ca)
+    - [Setup a Traefik container with https](#setup-a-traefik-container-with-https)
+- [Compose](#compose)
     - [Windows](#windows)
     - [Ubuntu or MacOS](#ubuntu-or-macos)
 - [File sharing](#file-sharing)
@@ -27,42 +32,47 @@ Is a set of docker compose to create home server which provides:
 - [Docker compose](https://docs.docker.com/compose/install/)
 - At least 2GB of RAM
 - At least 2 dedicated CPU cores for your docker
-- You need to change Adguard default port to `8081` manually during the installation
 
 ## Optionals
 If you are willing to access to your services using the generated domain on your host machine then you need to edit your hosts file to support local domain name resolving:
-- Linux: `/etc/hosts`
+- Linux or MacOS: `/etc/hosts`
 - Windows: `c:\windows\system32\drivers\etc\hosts`
 ```
 # Network
-127.0.0.1       YOUR_DOMAIN
-127.0.0.1       traefik.YOUR_DOMAIN
-127.0.0.1       adguard.YOUR_DOMAIN
+127.0.0.1       YOUR_DOMAIN.com
+127.0.0.1       traefik.YOUR_DOMAIN.com
+127.0.0.1       adguard.YOUR_DOMAIN.com
+127.0.0.1       nautilus.YOUR_DOMAIN.com
+
 # Container Manager
-127.0.0.1       portainer.YOUR_DOMAIN
+127.0.0.1       portainer.YOUR_DOMAIN.com
 # Media
-127.0.0.1      	jackett.YOUR_DOMAIN
-127.0.0.1       sonarr.YOUR_DOMAIN
-127.0.0.1       radarr.YOUR_DOMAIN
+127.0.0.1       jackett.YOUR_DOMAIN.com
+127.0.0.1       sonarr.YOUR_DOMAIN.com
+127.0.0.1       radarr.YOUR_DOMAIN.com
+127.0.0.1       bazarr.YOUR_DOMAIN.com
+
 # Monitoring
-127.0.0.1      	prometheus.YOUR_DOMAIN
-127.0.0.1      	alertmanager.YOUR_DOMAIN
-127.0.0.1      	pushgateway.YOUR_DOMAIN
-127.0.0.1      	grafana.YOUR_DOMAIN
+127.0.0.1       prometheus.YOUR_DOMAIN.com
+127.0.0.1       alertmanager.YOUR_DOMAIN.com
+127.0.0.1       pushgateway.YOUR_DOMAIN.com
+127.0.0.1       grafana.YOUR_DOMAIN.com
 ```
 
 ## Used Containers
 - Network
     - [Traefik](https://hub.docker.com/_/traefik)
     - [Adguard](https://hub.docker.com/r/adguard/adguardhome)
-    - [Organizr](https://hub.docker.com/r/organizrtools/organizr-v2/)
+    - [Heimdall](https://hub.docker.com/r/linuxserver/heimdall/)
+    - [Static-Files](https://hub.docker.com/r/halverneus/static-file-server)
 - Container Manager
     - [Portainer](https://hub.docker.com/r/portainer/portainer/)
 - Media
     - [Jackett](https://hub.docker.com/r/linuxserver/jackett/)
     - [Sonarr](https://hub.docker.com/r/linuxserver/sonarr/)
     - [Radarr](https://hub.docker.com/r/linuxserver/radarr/)
-- Monitoring (Config from [DockerProm]())
+    - [Bazarr](https://hub.docker.com/r/linuxserver/bazarr)
+- Monitoring (Config from [DockerProm](https://github.com/stefanprodan/dockprom))
     - [Grafana](https://hub.docker.com/r/grafana/grafana/)
     - [Prometheus Pushgateway](https://hub.docker.com/r/prom/pushgateway)
     - [AlterManager](https://hub.docker.com/r/prom/alertmanager/)
@@ -70,97 +80,113 @@ If you are willing to access to your services using the generated domain on your
     - [Node-Exporter](https://hub.docker.com/r/prom/node-exporter/)
     - [cAdvisor](https://github.com/google/cadvisor)
 
-## Deploy
-First you need to provide your configuration:
-### Windows
-Create or edit `docker-compose-env.ps1`, for reference check `docker-compose-env.default.ps1` :
-```powershell
-# Network
-# Don't forget to rewrite your domain in adguard
-$env:DOMAIN = "YOUR_DOMAIN"
-# Check https://docs.traefik.io/middlewares/basicauth/
-$env:BASIC_AUTH_USER = "YOUR_BASIC_AUTH_USER"
-$env:TRAEFIK_PORT = "YOUR_TRAEFIK_PORT"
-$env:ADGUARD_PORT = "YOUR_ADGUARD_PORT"
-$env:ORGANIZR_PORT = "YOUR_ORGANIZR_PORT"
-$env:DNS1 = "YOUR_DNS1"
-$env:DNS2 = "YOUR_DNS2"
 
-# Container manager
-$env:PORTAINER_PORT = "YOUR_PORTAINER_PORT"
+## SSL/HTTPS
+This section: 
+- does not cover SSL for windows
+- cover only local self signed certificate based on [mkcert](https://github.com/FiloSottile/mkcert)
+- all thx go to [traefik-local](https://github.com/SushiFu/traefik-local)
 
-# Media
-$env:DOWNLOAD_PATH = "YOUR_DOWNLOAD_PATH"
-$env:TV_PATH = "YOUR_TV_PATH"
-$env:MOVIE_PATH = "YOUR_MOVIES_PATH"
-$env:JACKETT_PORT = "YOUR_JACKETT_PORT"
-$env:SONARR_PORT = "YOUR_SONARR_PORT"
-$env:RADARR_PORT = "YOUR_RADARR_PORT"
-
-# Monitoring
-$env:ADMIN_USER = "YOUR_USERNAME"
-$env:ADMIN_PASSWORD = "YOUR_PASSWORD"
-$env:GRAFANA_PORT = "YOUR_GRAFANA_PORT"
-$env:PUSHGATEWAY_PORT = "YOUR_PUSHGATEWAY_PORT"
-$env:ALERT_MANAGER_PORT = "YOUR_ALERT_MANAGER_PORT"
-$env:PROMETHEUS_PORT = "YOUR_PROMETHEUS_PORT"
-
+### Setup your resolver 
+Let's asume your top level domain name is `com` && `lan`
+```sh
+# To take into account our local docker resolver
+sudo mkdir -p /etc/resolver
+echo "your_name_server 127.0.0.1" | sudo tee -a /etc/resolver/com > /dev/null
+echo "your_name_server 127.0.0.1" | sudo tee -a /etc/resolver/lan > /dev/null
 ```
 
-Starting composing by running `docker-compose-start.ps1` on powershell.
+### Setup a local Root CA
+#### MacOS
+```sh
+brew install mkcert
+brew install nss # only if you use Firefox
+
+# Setup the local Root CA
+mkcert -install
+```
+
+#### Ubuntu
+```sh
+apt install libnss3-tools -y
+wget https://github.com/FiloSottile/mkcert/releases/download/v1.4.1/mkcert-v1.4.1-linux-amd64
+mv mkcert-v1.4.1-linux-amd64 mkcert
+chmod +x mkcert
+mv mkcert /usr/local/bin/
+mkcert -install
+```
+
+### Setup a Traefik container with https
+```sh
+mkdir ./data/network/traefik/certs
+cd ./data/network/traefik/certs
+mkcert -cert-file local.crt -key-file local.key "YOUR_DOMAIN.com" "*.YOUR_DOMAIN.com" "YOUR_DOMAIN.lan" "*.YOUR_DOMAIN.lan"
+```
+
+## Compose
+First you need to provide your configuration.
+Create or edit `.env` file(for reference check `.sample.env`):
+```
+# Network
+# Don't forget to rewrite your domain in adguard
+DOMAIN="YOUR_DOMAIN"
+# Check https://docs.traefik.io/middlewares/basicauth/
+BASIC_AUTH_USER="YOUR_HT_PASSWD"
+TRAEFIK_PORT="YOUR_TRAEFIK_PORT"
+ADGUARD_PORT="YOUR_ADGUARD_PORT"
+HEIMDALL_PORT="YOUR_HEIMDALL_PORT"
+DNS1="YOUR_DNS1"
+DNS2="YOUR_DNS2"
+ROUTER_URL="YOUR_ROUTER_URL"
+NAUTILUS_PORT="YOUR_NAUTILUS_PORT"
+
+# Container manager
+PORTAINER_PORT="YOUR_PORTAINER_PORT"
+
+# Media
+DOWNLOAD_PATH="YOUR_DOWNLOAD_PATH"
+TV_PATH="YOUR_TV_PATH"
+MOVIE_PATH="YOUR_MOVIE_PATH"
+JACKETT_PORT="YOUR_JACKETT_PORT"
+SONARR_PORT="YOUR_SONARR_PORT"
+RADARR_PORT="YOUR_RADARR_PORT"
+BAZARR_PORT="YOUR_BAZARR_PORT"
+UTORRENT_URL="YOUR_UTORRENT_URL"
+
+# Monitoring
+ADMIN_USER="YOUR_ADMIN_USER"
+ADMIN_PASSWORD="YOUR_ADMIN_PASSWORD"
+GRAFANA_PORT="YOUR_GRAFANA_PORT"
+PUSHGATEWAY_PORT="YOUR_PUSHGATEWAY_PORT"
+ALERT_MANAGER_PORT="YOUR_ALERT_MANAGER_PORT"
+PROMETHEUS_PORT="YOUR_PROMETHEUS_PORT"
+
+```
+### Windows
+Start composing by running `docker-compose-up.ps1` on powershell.
 
 ### Ubuntu or MacOS
-Create or edit `docker-compose-env.sh` as executable, for reference check `docker-compose-env.default.sh` :
-
+Start composing by running:
 ```sh
-# Network
-# Don't forget to rewrite your domain in adguard
-export DOMAIN="YOUR_DOMAIN"
-# Check https://docs.traefik.io/middlewares/basicauth/
-export BASIC_AUTH_USER="YOUR_BASIC_AUTH_USER"
-export TRAEFIK_PORT="YOUR_TRAEFIK_PORT"
-export ADGUARD_PORT="YOUR_ADGUARD_PORT"
-export ORGANIZR_PORT="YOUR_ORGANIZR_PORT"
-export DNS1 = "YOUR_DNS1"
-export DNS2 = "YOUR_DNS2"
-# Container manager
-export PORTAINER_PORT="YOUR_PORTAINER_PORT"
-# Media
-export DOWNLOAD_PATH="YOUR_DOWNLOAD_PATH"
-export TV_PATH="YOUR_TV_PATH"
-export MOVIE_PATH="YOUR_MOVIES_PATH"
-export JACKETT_PORT="YOUR_JACKETT_PORT"
-export SONARR_PORT="YOUR_SONARR_PORT"
-export RADARR_PORT="YOUR_RADARR_PORT"
-# Monitoring
-export ADMIN_USER="USERNAME"
-export ADMIN_PASSWORD="PASSWORD"
-export GRAFANA_PORT="YOUR_GRAFANA_PORT"
-export PUSHGATEWAY_PORT="YOUR_PUSHGATEWAY_PORT"
-export ALERT_MANAGER_PORT="YOUR_ALERT_MANAGER_PORT"
-export PROMETHEUS_PORT="YOUR_PROMETHEUS_PORT"
-```
-
-Starting composing by running:
-```bash
-./docker-compose-start.sh
+./docker-compose-up.sh # this will compose containers using https/ssl
+./docker-compose-up.sh -s false # this will compose containers without https/ssl
+./docker-compose-up.sh -e path/to/your/env # this is you want to specify another path for your env
 ```
 
 To stop and remove services run:
-```bash
-./docker-compose-down.sh
+```sh
+./docker-compose-down.sh # if you containers is not using https then you need to specify -s false
 ```
 
 ## File sharing
-I'm using Windows as host and I'm using Windows SMB to share my files accross my network.
-
 You may need to setup [Samba](https://hub.docker.com/r/dperson/samba/) sever to share you files or not.
 
 ## Media Clients
 For my media clients, I'm using Kodi based on Windows SMB.
 
 ## Planing
-I'm planing to add hassio with default config for the next days.
+* Planing to add nextcloud.
+* Planing to add hassio with default config for the next days(Only for MacOS/Linux).
 
 ## FAQ or Issues:
 ### I can't access to my services using my domain name !!

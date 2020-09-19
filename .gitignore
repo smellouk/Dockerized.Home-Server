@@ -1,5 +1,11 @@
-/container
-/media
-/network
-docker-compose-env.ps1
-docker-compose-env.sh
+/data/container
+/data/media
+/data/network/adguard
+/data/network/heimdall
+/data/network/nautilus
+/data/network/traefik/certs
+/data/network/traefik/config/routers.yml
+/data/monitoring/alertmanager/nflog
+/data/monitoring/alertmanager/silences
+
+.env
