@@ -39,8 +39,16 @@ echo ""
 printf "${YELLOW}Environment variables path:${NC} $env"
 echo ""
 
+
 echo ""
-printf "${BLUE}--------- Docker compose${NC}"
+printf "${BLUE}------------- Docker Image${NC}"
+echo ""
+printf "${YELLOW}Nextcloud SMB${NC}"
+echo ""
+./dockerfiles/nextcloud/build.sh
+
+echo ""
+printf "${BLUE}------------- Docker compose${NC}"
 echo ""
 printf "${YELLOW}Network Stack${NC}"
 echo ""
@@ -61,3 +69,18 @@ printf "${YELLOW}Monitoring Stack${NC}"
 echo ""
 docker-compose -p "monitoring" -f "$base_compose_path/monitoring-compose.yaml" --env-file "$env" up -d
 
+echo ""
+printf "${YELLOW}Cloud Stack${NC}"
+echo ""
+docker-compose -p "cloud" -f "$base_compose_path/cloud-compose.yaml" --env-file "$env" up -d
+
+### This code is needed to enable internal communication between collabora and nextcloud using domain name
+echo ""
+printf "${BLUE}------------- Hosts cmd${NC}"
+echo ""
+printf "${YELLOW}Add cloud-net to iptables for host access${NC}"
+echo ""
+network_id=$(docker network ls --format "{{.ID}}" --filter name=cloud-net)
+sudo iptables -I INPUT 3 -i "br-$network_id" -j ACCEPT
+printf "Network${YELLOW}[br-$network_id]${NC} added to iptables!"
+echo ""

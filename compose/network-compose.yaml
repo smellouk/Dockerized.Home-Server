@@ -47,7 +47,19 @@ networks:
                 - subnet: 172.30.0.0/16
                   gateway: 172.30.0.1
                   
-services:
+    ##########################################
+    ############## Cloud bridge ##############
+    ##########################################
+    cloud-net:
+        name: cloud-net
+        driver: bridge
+        ipam:
+            driver: default
+            config:
+                - subnet: 172.40.0.0/16
+                  gateway: 172.40.0.1
+                  
+services:   
     #####################################
     ############## traefik ##############
     #####################################
@@ -84,6 +96,8 @@ services:
                 ipv4_address: 172.20.0.2
             monitor-net:
                 ipv4_address: 172.30.0.2
+            cloud-net:
+                ipv4_address: 172.40.0.2
         dns:
             - ${DNS1}
             - ${DNS2}
@@ -96,6 +110,7 @@ services:
             - "traefik.http.routers.traefik.middlewares=traefik-auth"
             - "traefik.http.services.traefik.loadbalancer.server.port=8080"
             - "traefik.http.middlewares.traefik-auth.basicauth.users=${BASIC_AUTH_USER}"
+            - "com.centurylinklabs.watchtower.enable=true"
 
     ######################################
     ############## heimdall ##############
@@ -130,6 +145,7 @@ services:
             - "traefik.http.routers.heimdall.tls=true"
             - "traefik.http.routers.heimdall.service=heimdall"
             - "traefik.http.services.heimdall.loadbalancer.server.port=80"
+            - "com.centurylinklabs.watchtower.enable=true"
             
     #########################################
     ############## adguardhome ##############
@@ -152,6 +168,13 @@ services:
             - "853:853/tcp"
             - "3001:3000/tcp"
             - "${ADGUARD_PORT}:8080/tcp"
+        expose:
+            - 53/tcp
+            - 53/udp
+            - 67/udp
+            - 68/tcp
+            - 68/udp
+            - 853/tcp
         networks:
             home-net:
                 ipv4_address: 172.0.0.4
@@ -162,6 +185,7 @@ services:
             - "traefik.http.routers.adguard.tls=true"
             - "traefik.http.routers.adguard.service=adguard"
             - "traefik.http.services.adguard.loadbalancer.server.port=8080"
+            - "com.centurylinklabs.watchtower.enable=true"
     
     #############################################
     ############## Static nautilus ##############
@@ -175,6 +199,8 @@ services:
             - ../data/network/nautilus:/web
         ports:
             - "${NAUTILUS_PORT}:8080"
+        expose:
+            - 8080
         networks:
             home-net:
                 ipv4_address: 172.0.0.5
@@ -185,3 +211,4 @@ services:
             - "traefik.http.routers.nautilus.tls=true"
             - "traefik.http.routers.nautilus.service=nautilus"
             - "traefik.http.services.nautilus.loadbalancer.server.port=8080"
+            - "com.centurylinklabs.watchtower.enable=true"

@@ -46,6 +46,19 @@ networks:
             config:
                 - subnet: 172.30.0.0/16
                   gateway: 172.30.0.1
+                  
+    ##########################################
+    ############## Cloud bridge ##############
+    ##########################################
+    cloud-net:
+        name: cloud-net
+        driver: bridge
+        ipam:
+            driver: default
+            config:
+                - subnet: 172.40.0.0/16
+                  gateway: 172.40.0.1
+                  
 services:
     #####################################
     ############## traefik ##############
@@ -76,6 +89,8 @@ services:
                 ipv4_address: 172.20.0.2
             monitor-net:
                 ipv4_address: 172.30.0.2
+            cloud-net:
+                ipv4_address: 172.40.0.2
         dns:
             - ${DNS1}
             - ${DNS2}
@@ -86,6 +101,7 @@ services:
             - "traefik.http.services.traefik.loadbalancer.server.scheme=http"
             - "traefik.http.routers.traefik.middlewares=traefik-auth"
             - "traefik.http.middlewares.traefik-auth.basicauth.users=${BASIC_AUTH_USER}"
+            - "com.centurylinklabs.watchtower.enable=true"
 
     #########################################
     ############## adguardhome ##############
@@ -116,6 +132,7 @@ services:
             - "traefik.http.routers.adguard.rule=Host(`adguard.${DOMAIN}`)"
             - "traefik.http.routers.adguard.entrypoints=web"
             - "traefik.http.services.adguard.loadbalancer.server.port=8080"
+            - "com.centurylinklabs.watchtower.enable=true"
 
     ######################################
     ############## heimdall ##############
@@ -143,3 +160,4 @@ services:
             - "traefik.http.routers.heimdall.rule=Host(`${DOMAIN}`)"
             - "traefik.http.services.heimdall.loadbalancer.server.port=80"
             - "traefik.http.services.heimdall.loadbalancer.server.scheme=http"
+            - "com.centurylinklabs.watchtower.enable=true"

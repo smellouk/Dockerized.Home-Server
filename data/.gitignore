@@ -1,0 +1,11 @@
+/container
+/media
+/network/adguard
+/network/heimdall
+/network/nautilus
+/network/traefik/certs
+/network/traefik/config/routers.yml
+/monitoring/alertmanager/nflog
+/monitoring/alertmanager/silences
+/cloud/nextcloud
+/cloud/postgres

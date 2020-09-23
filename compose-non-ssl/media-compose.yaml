@@ -29,6 +29,7 @@ services:
             - "traefik.http.routers.jackett.rule=Host(`jackett.${DOMAIN}`)"
             - "traefik.http.routers.jackett.entrypoints=web"
             - "traefik.http.services.jackett.loadbalancer.server.port=9117"
+            - "com.centurylinklabs.watchtower.enable=true"
     
     #####################################
     ############## sonarr ###############
@@ -56,6 +57,7 @@ services:
             - "traefik.http.routers.sonarr.rule=Host(`sonarr.${DOMAIN}`)"
             - "traefik.http.routers.sonarr.entrypoints=web"
             - "traefik.http.services.sonarr.loadbalancer.server.port=8989"
+            - "com.centurylinklabs.watchtower.enable=true"
     
     #####################################
     ############## radarr ###############
@@ -83,6 +85,7 @@ services:
             - "traefik.http.routers.radarr.rule=Host(`radarr.${DOMAIN}`)"
             - "traefik.http.routers.radarr.entrypoints=web"
             - "traefik.http.services.radarr.loadbalancer.server.port=7878"
+            - "com.centurylinklabs.watchtower.enable=true"
     #####################################
     ############## bazarr ###############
     #####################################
@@ -109,3 +112,4 @@ services:
             - "traefik.http.routers.bazarr.rule=Host(`bazarr.${DOMAIN}`)"
             - "traefik.http.routers.bazarr.entrypoints=web"
             - "traefik.http.services.bazarr.loadbalancer.server.port=6767"
+            - "com.centurylinklabs.watchtower.enable=true"

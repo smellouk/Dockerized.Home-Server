@@ -40,7 +40,7 @@ printf "${YELLOW}Environment variables path:${NC} $env"
 echo ""
 
 echo ""
-printf "${BLUE}--------- Docker compose${NC}"
+printf "${BLUE}------------- Docker compose${NC}"
 echo ""
 printf "${YELLOW}Container Manager Stack${NC}"
 echo ""
@@ -55,6 +55,11 @@ echo ""
 printf "${YELLOW}Monitoring Stack${NC}"
 echo ""
 docker-compose -p "monitoring" -f ./compose/monitoring-compose.yaml --env-file "$env" down
+
+echo ""
+printf "${YELLOW}Cloud Stack${NC}"
+echo ""
+docker-compose -p "cloud" -f "$base_compose_path/cloud-compose.yaml" --env-file "$env" down
 
 echo ""
 printf "${YELLOW}Network Stack${NC}"

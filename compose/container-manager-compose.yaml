@@ -5,9 +5,23 @@ networks:
         external: true
 
 services:
-    #####################################
+    ########################################
+    ############## watchtower ##############
+    ########################################
+    watchtower:
+        image: containrrr/watchtower
+        container_name: watchtower
+        command: --label-enable --cleanup --interval 300
+        volumes:
+            - /var/run/docker.sock:/var/run/docker.sock
+        network_mode: none
+        restart: always
+        labels:
+            - "com.centurylinklabs.watchtower.enable=true"
+            
+    #######################################
     ############## portainer ##############
-    #####################################
+    #######################################
     portainer:
         image: portainer/portainer
         container_name: portainer
@@ -22,6 +36,7 @@ services:
             container-manager-net:
                 ipv4_address: 172.10.0.4
         labels:
+            - "com.centurylinklabs.watchtower.enable=true"
             - "traefik.enable=true"
             - "traefik.http.routers.portainer.entrypoints=http,https"
             - "traefik.http.routers.portainer.rule=Host(`portainer.${DOMAIN}`)"

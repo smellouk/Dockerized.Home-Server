@@ -8,8 +8,10 @@ Is a set of docker compose to create home server which provides:
 - Media manager solution
 - Resources Monitoring solution
 - HTTPS/SSL
+- A suite of client-server software for creating and using file hosting services.
 
-![Heimdall pointing on Portainer](screenshot.png)
+![Heimdall!](screenshot.png)
+![Nextcloud!](screenshot2.png)
 
 ## Goto
 - [Requirements](#requirements)
@@ -19,6 +21,7 @@ Is a set of docker compose to create home server which provides:
     - [Setup your resolver ](#setup-your-resolver)
     - [Setup a local Root CA](#setup-a-local-root-ca)
     - [Setup a Traefik container with https](#setup-a-traefik-container-with-https)
+    - [Nextcloud with https](#nextcloud-with-https)
 - [Compose](#compose)
     - [Windows](#windows)
     - [Ubuntu or MacOS](#ubuntu-or-macos)
@@ -30,7 +33,7 @@ Is a set of docker compose to create home server which provides:
 ## Requirements:
 - [Docker](https://docs.docker.com/get-docker/)
 - [Docker compose](https://docs.docker.com/compose/install/)
-- At least 2GB of RAM
+- At least 4GB of RAM
 - At least 2 dedicated CPU cores for your docker
 
 ## Optionals
@@ -57,6 +60,10 @@ If you are willing to access to your services using the generated domain on your
 127.0.0.1       alertmanager.YOUR_DOMAIN.com
 127.0.0.1       pushgateway.YOUR_DOMAIN.com
 127.0.0.1       grafana.YOUR_DOMAIN.com
+
+#Cloud
+127.0.0.1       cloud.YOUR_DOMAIN.com
+127.0.0.1       collabora.YOUR_DOMAIN.com
 ```
 
 ## Used Containers
@@ -79,7 +86,11 @@ If you are willing to access to your services using the generated domain on your
     - [Prometheus](https://hub.docker.com/r/prom/prometheus/)
     - [Node-Exporter](https://hub.docker.com/r/prom/node-exporter/)
     - [cAdvisor](https://github.com/google/cadvisor)
-
+- Cloud
+    - [Redis](https://hub.docker.com/_/redis)
+    - [Postgres](https://hub.docker.com/_/postgres)
+    - [Nextcloud](https://hub.docker.com/_/nextcloud)
+    - [Collabora/Code](https://hub.docker.com/r/collabora/code)
 
 ## SSL/HTTPS
 This section: 
@@ -123,14 +134,19 @@ cd ./data/network/traefik/certs
 mkcert -cert-file local.crt -key-file local.key "YOUR_DOMAIN.com" "*.YOUR_DOMAIN.com" "YOUR_DOMAIN.lan" "*.YOUR_DOMAIN.lan"
 ```
 
+### Nextcloud with https
+To use SSL with Nextcloud you will need to copy CA root certificate to docker files working directory :  
+Run: 
+```shell
+cp /home/YOUR_USERNAME/.local/share/mkcert/rootCA.pem ./dockerfiles/nextcloud/rootCA.crt
+```
+
 ## Compose
 First you need to provide your configuration.
 Create or edit `.env` file(for reference check `.sample.env`):
 ```
 # Network
-# Don't forget to rewrite your domain in adguard
 DOMAIN="YOUR_DOMAIN"
-# Check https://docs.traefik.io/middlewares/basicauth/
 BASIC_AUTH_USER="YOUR_HT_PASSWD"
 TRAEFIK_PORT="YOUR_TRAEFIK_PORT"
 ADGUARD_PORT="YOUR_ADGUARD_PORT"
@@ -161,6 +177,23 @@ PUSHGATEWAY_PORT="YOUR_PUSHGATEWAY_PORT"
 ALERT_MANAGER_PORT="YOUR_ALERT_MANAGER_PORT"
 PROMETHEUS_PORT="YOUR_PROMETHEUS_PORT"
 
+# Cloud
+POSTGRES_USER="YOUR_POSTGRESS_USER"
+POSTGRES_PASSWORD="YOUR_POSTGRESS_PASSWORD"
+POSTGRES_DB="YOUR_DB_NAME"
+REDIS_HOST_PASSWORD="YOUR_REDIS_PASSWORD"
+COLLABORA_PORT="YOUR_COLLABORA_PORT"
+COLLABORA_ADMIN="YOUR_COLLABORA_USER"
+COLLABORA_PASS="YOUR_COLLABORA_PASSWORD"
+NEXTCLOUD_PORT="YOUR_NEXTCLOUD_PORT"
+SMTP_HOST="YOUR_SMPT_HOST" #ex: smtp.gmail.com
+SMTP_PORT="YOUR_SMPTY_PORT" #ex: 465
+SMTP_SECURE="YOUR_SMTP_SECURE" #ex: ssl
+SMTP_AUTHTYPE="YOUR_SMTP_LOGINTYPE" #ex: LOGIN
+SMTP_NAME="YOUR_SMPTP_NAME" #ex: YOUR_USER@gmail.com
+SMTP_PASSWORD="YOUR_GMAIL_PASS"
+MAIL_FROM_ADDRESS="YOUR_MAIL_USER" #ex: YOUR_USER
+MAIL_DOMAIN="YOUR_MAIL_DOMAIN" #ex: gmail.com
 ```
 ### Windows
 Start composing by running `docker-compose-up.ps1` on powershell.
@@ -170,22 +203,22 @@ Start composing by running:
 ```sh
 ./docker-compose-up.sh # this will compose containers using https/ssl
 ./docker-compose-up.sh -s false # this will compose containers without https/ssl
-./docker-compose-up.sh -e path/to/your/env # this is you want to specify another path for your env
+./docker-compose-up.sh -e path/to/your/env # this is if you want to specify another path for your env
 ```
 
 To stop and remove services run:
 ```sh
-./docker-compose-down.sh # if you containers is not using https then you need to specify -s false
+./docker-compose-down.sh # if your containers are not using https then you need to specify -s false
 ```
+** FYI: .sh is also executing another command which will allow containers cloud stack containers to communicate with each other throw Traefik and Adguard **
 
 ## File sharing
 You may need to setup [Samba](https://hub.docker.com/r/dperson/samba/) sever to share you files or not.
 
 ## Media Clients
-For my media clients, I'm using Kodi based on Windows SMB.
+For my media clients, I'm using Kodi based on NAS Server.
 
 ## Planing
-* Planing to add nextcloud.
 * Planing to add hassio with default config for the next days(Only for MacOS/Linux).
 
 ## FAQ or Issues:
@@ -194,3 +227,10 @@ Check your router for possible DNS binding protection, if it's the case like Fri
 
 ### I can't run `ps1` file!!
 Run `Set-ExecutionPolicy RemoteSigned` as Admin and follow the instructions.
+
+### Nextcloud is unable to communicate with Collabora/Code !! 
+Please make sure that this command was executed by your shell docker composer `docker-compose-up.sh`:
+```shell
+network_id=$(docker network ls --format "{{.ID}}" --filter name=cloud-net)
+sudo iptables -I INPUT 3 -i "br-$network_id" -j ACCEPT
+```
